@@ -80,7 +80,7 @@
       </form>
     </section>
 
-    <!-- กล่องข้อความสำหรับ Copy (แก้ไขชื่อหัวข้อได้เอง) -->
+    <!-- กล่องข้อความสำหรับ Copy (3 แบบ) -->
     <section class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg space-y-4">
       <div class="flex justify-between items-center">
         <h2 class="text-lg font-bold text-indigo-300">
@@ -131,7 +131,7 @@
       </div>
     </section>
 
-    <!-- สรุปรายการคลิปของฉัน (เพิ่มปุ่มล้างข้อมูลทั้งหมด) -->
+    <!-- สรุปรายการคลิปของฉัน -->
     <section class="bg-gradient-to-r from-gray-800 to-indigo-950 p-6 rounded-xl border border-indigo-500/30 shadow-xl space-y-4">
       <div class="flex flex-col md:flex-row justify-between items-center gap-3">
         <h2 class="text-lg font-bold text-indigo-300">
@@ -139,7 +139,6 @@
         </h2>
         <div class="flex items-center gap-2">
           <span id="myTotalCount" class="text-xs bg-indigo-600/50 text-indigo-200 px-3 py-1 rounded-full font-semibold">0 คลิป</span>
-          <!-- 🗑️ ปุ่มล้างข้อมูลทั้งหมด -->
           <button type="button" onclick="clearAllMyData()" class="bg-red-700 hover:bg-red-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition flex items-center gap-1 shadow cursor-pointer">
             <i class="fa-solid fa-trash-can"></i> ล้างข้อมูลทั้งหมด
           </button>
@@ -171,6 +170,10 @@
 
   <script>
     const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1MCyeb0qJnHoKRI7fFrE3_cs67Es3F_qXTcXMFjgNveo/edit?gid=1898788398#gid=1898788398";
+    
+    // 🌐 นำ Web App URL ที่ได้จากขั้นตอน Deploy ใน Apps Script มาวางตรงนี้ครับ
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx8r8wWVBumrWvu7zuXLOM0ZgrEPAkrFsDmz49UjzGmgX2CYWjPAmmwyFXOTqxePoBoRg/exec"; 
+
     let localPosts = JSON.parse(localStorage.getItem('my_reel_posts') || '[]');
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -210,7 +213,6 @@
       }
     }
 
-    // 🗑️ ฟังก์ชันล้างข้อมูลรายการคลิปทั้งหมดของรหัสสมาชิกนี้
     function clearAllMyData() {
       const myId = document.getElementById("myMemberId").value.trim().toUpperCase() || "A001";
       const myPostsCount = localPosts.filter(post => post.memberId === myId).length;
@@ -221,7 +223,6 @@
       }
 
       if (confirm(`⚠️ คุณต้องการลบรายการคลิปทั้งหมดของรหัส (${myId}) จำนวน ${myPostsCount} คลิป ใช่หรือไม่?`)) {
-        // กรองเก็บเฉพาะคลิปของรหัสอื่นไว้ (ลบเฉพาะรหัสปัจจุบัน) หรือถ้าต้องการลบเกลี้ยงทั้งหมดสามารถเปลี่ยนเงื่อนไขได้ครับ
         localPosts = localPosts.filter(post => post.memberId !== myId);
         localStorage.setItem('my_reel_posts', JSON.stringify(localPosts));
         renderMyPosts();
@@ -286,29 +287,58 @@
       });
     }
 
-    document.getElementById("addPostForm").addEventListener("submit", (e) => {
+    // ฟังก์ชันส่งข้อมูลเข้า Google Sheet
+    document.getElementById("addPostForm").addEventListener("submit", async (e) => {
       e.preventDefault();
+      const btnSubmit = document.getElementById("btnSubmit");
+      btnSubmit.disabled = true;
+      btnSubmit.innerText = "กำลังบันทึก...";
+
       const myId = document.getElementById("myMemberId").value.trim().toUpperCase() || "A001";
       const customDate = document.getElementById("postDate").value;
+      const platform = document.getElementById("platform").value;
+      const title = document.getElementById("title").value;
+      const reelUrl = document.getElementById("reelUrl").value;
 
       const newPost = {
         id: Date.now(),
         memberId: myId,
-        platform: document.getElementById("platform").value,
-        title: document.getElementById("title").value,
-        reelUrl: document.getElementById("reelUrl").value,
+        platform: platform,
+        title: title,
+        reelUrl: reelUrl,
         date: customDate || new Date().toISOString().split('T')[0],
         likes: 0,
         comments: 0,
         shares: 0
       };
 
+      // 1. บันทึกเข้าเครื่อง
       localPosts.unshift(newPost);
       localStorage.setItem('my_reel_posts', JSON.stringify(localPosts));
+      renderMyPosts();
+
+      // 2. ส่งข้อมูลไป Google Apps Script
+      if (APPS_SCRIPT_URL && APPS_SCRIPT_URL.includes("script.google.com")) {
+        try {
+          await fetch(APPS_SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newPost)
+          });
+          alert("✅ บันทึกข้อมูลเข้า Google Sheet เรียบร้อยครับ!");
+        } catch (err) {
+          console.error("Error:", err);
+          alert("⚠️ บันทึกในเว็บเรียบร้อย แต่ส่งเข้า Google Sheet ไม่สำเร็จ");
+        }
+      } else {
+        alert("⚠️ บันทึกข้อมูลลงในเว็บเรียบร้อย! (หากต้องการให้ลง Google Sheet ด้วย อย่าลืมใส่ Web App URL ในโค้ดนะครับ)");
+      }
 
       document.getElementById("title").value = "";
       document.getElementById("reelUrl").value = "";
-      renderMyPosts();
+      btnSubmit.disabled = false;
+      btnSubmit.innerText = "โพสต์คลิป";
     });
 
     function editStats(id) {
