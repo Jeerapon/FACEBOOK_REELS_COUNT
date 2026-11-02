@@ -131,13 +131,19 @@
       </div>
     </section>
 
-    <!-- สรุปรายการคลิปของฉัน -->
+    <!-- สรุปรายการคลิปของฉัน (เพิ่มปุ่มล้างข้อมูลทั้งหมด) -->
     <section class="bg-gradient-to-r from-gray-800 to-indigo-950 p-6 rounded-xl border border-indigo-500/30 shadow-xl space-y-4">
-      <div class="flex justify-between items-center">
+      <div class="flex flex-col md:flex-row justify-between items-center gap-3">
         <h2 class="text-lg font-bold text-indigo-300">
           <i class="fa-solid fa-list-check mr-2"></i>สรุปรายการคลิปของฉัน (<span id="displayMyId">A001</span>)
         </h2>
-        <span id="myTotalCount" class="text-xs bg-indigo-600/50 text-indigo-200 px-3 py-1 rounded-full font-semibold">0 คลิป</span>
+        <div class="flex items-center gap-2">
+          <span id="myTotalCount" class="text-xs bg-indigo-600/50 text-indigo-200 px-3 py-1 rounded-full font-semibold">0 คลิป</span>
+          <!-- 🗑️ ปุ่มล้างข้อมูลทั้งหมด -->
+          <button type="button" onclick="clearAllMyData()" class="bg-red-700 hover:bg-red-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition flex items-center gap-1 shadow cursor-pointer">
+            <i class="fa-solid fa-trash-can"></i> ล้างข้อมูลทั้งหมด
+          </button>
+        </div>
       </div>
       
       <div class="overflow-x-auto">
@@ -173,12 +179,10 @@
       const today = new Date().toISOString().split('T')[0];
       document.getElementById('postDate').value = today;
 
-      // โหลดข้อมูลชื่อกล่องและข้อความที่เคยบันทึกไว้
       loadBoxSettings();
       renderMyPosts();
     });
 
-    // บันทึกค่าชื่อหัวข้อและข้อความลง LocalStorage
     function saveBoxSettings() {
       const settings = {
         title1: document.getElementById('boxTitle1').value,
@@ -191,7 +195,6 @@
       localStorage.setItem('reel_box_settings', JSON.stringify(settings));
     }
 
-    // โหลดค่าที่บันทึกไว้มาแสดง
     function loadBoxSettings() {
       const saved = localStorage.getItem('reel_box_settings');
       if (saved) {
@@ -204,6 +207,24 @@
           if (data.title3) document.getElementById('boxTitle3').value = data.title3;
           if (data.text3) document.getElementById('copyText3').value = data.text3;
         } catch(e) {}
+      }
+    }
+
+    // 🗑️ ฟังก์ชันล้างข้อมูลรายการคลิปทั้งหมดของรหัสสมาชิกนี้
+    function clearAllMyData() {
+      const myId = document.getElementById("myMemberId").value.trim().toUpperCase() || "A001";
+      const myPostsCount = localPosts.filter(post => post.memberId === myId).length;
+
+      if (myPostsCount === 0) {
+        alert("ไม่มีข้อมูลคลิปของรหัส " + myId + " ให้ล้างครับ");
+        return;
+      }
+
+      if (confirm(`⚠️ คุณต้องการลบรายการคลิปทั้งหมดของรหัส (${myId}) จำนวน ${myPostsCount} คลิป ใช่หรือไม่?`)) {
+        // กรองเก็บเฉพาะคลิปของรหัสอื่นไว้ (ลบเฉพาะรหัสปัจจุบัน) หรือถ้าต้องการลบเกลี้ยงทั้งหมดสามารถเปลี่ยนเงื่อนไขได้ครับ
+        localPosts = localPosts.filter(post => post.memberId !== myId);
+        localStorage.setItem('my_reel_posts', JSON.stringify(localPosts));
+        renderMyPosts();
       }
     }
 
