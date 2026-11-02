@@ -116,4 +116,160 @@
             <tr>
               <th class="p-3">วันที่โพสต์</th>
               <th class="p-3">ชื่อคลิป</th>
-              <th class="p-3">แพลตฟ
+              <th class="p-3">แพลตฟอร์ม</th>
+              <th class="p-3 text-center">ไลค์ (Likes)</th>
+              <th class="p-3 text-center">คอมเมนต์ (Comments)</th>
+              <th class="p-3 text-center">แชร์ (Shares)</th>
+              <th class="p-3 text-center">จัดการสถิติ</th>
+              <th class="p-3 text-right">ลิงก์คลิป</th>
+            </tr>
+          </thead>
+          <tbody id="myPostsTableBody" class="divide-y divide-gray-700/50">
+            <!-- Render my posts dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    let localPosts = JSON.parse(localStorage.getItem('my_reel_posts') || '[]');
+
+    document.addEventListener("DOMContentLoaded", () => {
+      // ตั้งค่าช่องวันที่เป็นวันเวลาปัจจุบันโดยอัตโนมัติเมื่อเปิดเว็บ
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      document.getElementById('postDate').value = now.toISOString().slice(0,16);
+      renderMyPosts();
+    });
+
+    function renderMyPosts() {
+      const myId = document.getElementById("myMemberId").value.trim().toUpperCase() || "A001";
+      document.getElementById("displayMyId").innerText = myId;
+      
+      const myTableBody = document.getElementById("myPostsTableBody");
+      myTableBody.innerHTML = "";
+
+      const myPosts = localPosts.filter(post => post.memberId === myId);
+      document.getElementById("myTotalCount").innerText = `${myPosts.length} คลิป`;
+
+      if (myPosts.length === 0) {
+        myTableBody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-gray-500">ยังไม่มีรายการคลิป กรุณาเพิ่มคลิปใหม่ด้านบน</td></tr>`;
+        return;
+      }
+
+      myPosts.forEach((post) => {
+        // จัดรูปแบบวันที่แสดงผลให้สวยงาม
+        let formattedDate = post.date;
+        if (post.date && post.date.includes('-')) {
+          const d = new Date(post.date);
+          if (!isNaN(d)) {
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear() + 543; // แปลงเป็น พ.ศ.
+            const time = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+            formattedDate = `${day}/${month}/${year} <br><span class="text-gray-500 text-[11px]">${time}</span>`;
+          }
+        }
+
+        const row = document.createElement("tr");
+        row.className = "hover:bg-gray-800/40 transition";
+        row.innerHTML = `
+          <td class="p-3 text-xs text-gray-300 leading-tight">${formattedDate}</td>
+          <td class="p-3 font-medium text-white">${post.title}</td>
+          <td class="p-3">
+            <span class="text-xs px-2 py-0.5 rounded font-bold ${post.platform === 'FACEBOOK' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'}">${post.platform}</span>
+          </td>
+          <td class="p-3 text-center"><span class="font-bold text-green-400">${post.likes || 0}</span></td>
+          <td class="p-3 text-center"><span class="font-bold text-yellow-400">${post.comments || 0}</span></td>
+          <td class="p-3 text-center"><span class="font-bold text-blue-400">${post.shares || 0}</span></td>
+          <td class="p-3 text-center">
+            <button onclick="editStats(${post.id})" class="bg-indigo-600/80 hover:bg-indigo-500 text-white text-xs px-3 py-1 rounded font-semibold transition">
+              <i class="fa-solid fa-pen-to-square mr-1"></i>แก้ไขสถิติ
+            </button>
+          </td>
+          <td class="p-3 text-right">
+            <a href="${post.reelUrl}" target="_blank" class="text-indigo-400 hover:text-indigo-300 text-xs underline"><i class="fa-solid fa-external-link mr-1"></i>เปิดดูคลิป</a>
+          </td>
+        `;
+        myTableBody.appendChild(row);
+      });
+    }
+
+    document.getElementById("addPostForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const myId = document.getElementById("myMemberId").value.trim().toUpperCase() || "A001";
+      const customDate = document.getElementById("postDate").value;
+
+      const newPost = {
+        id: Date.now(),
+        memberId: myId,
+        platform: document.getElementById("platform").value,
+        title: document.getElementById("title").value,
+        reelUrl: document.getElementById("reelUrl").value,
+        date: customDate || new Date().toISOString(),
+        likes: 0,
+        comments: 0,
+        shares: 0
+      };
+
+      localPosts.unshift(newPost);
+      localStorage.setItem('my_reel_posts', JSON.stringify(localPosts));
+
+      document.getElementById("title").value = "";
+      document.getElementById("reelUrl").value = "";
+      renderMyPosts();
+    });
+
+    // ระบบแก้ไขสถิติ และ แก้ไขวันที่/เวลา
+    function editStats(id) {
+      const post = localPosts.find(p => p.id === id);
+      if (!post) return;
+
+      const newLikes = prompt(`แก้ไขจำนวนไลค์ สำหรับ "${post.title}":`, post.likes || 0);
+      if (newLikes === null) return;
+
+      const newComments = prompt(`แก้ไขจำนวนคอมเมนต์ สำหรับ "${post.title}":`, post.comments || 0);
+      if (newComments === null) return;
+
+      const newShares = prompt(`แก้ไขจำนวนแชร์ สำหรับ "${post.title}":`, post.shares || 0);
+      if (newShares === null) return;
+
+      // แปลงวันที่เดิมให้อยู่ในรูปแบบที่ input datetime-local รองรับ
+      let currentInputDate = "";
+      try {
+        currentInputDate = new Date(post.date).toISOString().slice(0,16);
+      } catch(e) {
+        currentInputDate = "";
+      }
+
+      const newDate = prompt(`แก้ไขวันที่และเวลา (รูปแบบ YYYY-MM-DDTHH:MM เช่น 2026-11-02T23:48):`, currentInputDate);
+      if (newDate === null) return;
+
+      post.likes = parseInt(newLikes) || 0;
+      post.comments = parseInt(newComments) || 0;
+      post.shares = parseInt(newShares) || 0;
+      if (newDate.trim() !== "") {
+        post.date = newDate;
+      }
+
+      localStorage.setItem('my_reel_posts', JSON.stringify(localPosts));
+      renderMyPosts();
+    }
+
+    function copyToClipboard(elementId, btnElement) {
+      const copyText = document.getElementById(elementId);
+      copyText.select();
+      copyText.setSelectionRange(0, 99999);
+      navigator.clipboard.writeText(copyText.value);
+
+      const originalText = btnElement.innerHTML;
+      btnElement.innerHTML = `<i class="fa-solid fa-check text-green-400"></i><span class="text-green-400">คัดลอกแล้ว!</span>`;
+      setTimeout(() => {
+        btnElement.innerHTML = originalText;
+      }, 2000);
+    }
+  </script>
+</body>
+</html>
