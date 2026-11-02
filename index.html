@@ -80,7 +80,7 @@
       </form>
     </section>
 
-    <!-- กล่องข้อความสำหรับ Copy (แก้ไขชื่อหัวข้อได้เอง) -->
+    <!-- กล่องข้อความสำหรับ Copy -->
     <section class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg space-y-4">
       <div class="flex justify-between items-center">
         <h2 class="text-lg font-bold text-indigo-300">
@@ -167,6 +167,9 @@
     </section>
 
   </div>
+
+  <!-- Hidden iframe สำหรับส่งข้อมูลทะลุ CORS ไป Google Sheet -->
+  <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
 
   <script>
     const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1MCyeb0qJnHoKRI7fFrE3_cs67Es3F_qXTcXMFjgNveo/edit?gid=1898788398#gid=1898788398";
@@ -285,7 +288,7 @@
       });
     }
 
-    document.getElementById("addPostForm").addEventListener("submit", async (e) => {
+    document.getElementById("addPostForm").addEventListener("submit", (e) => {
       e.preventDefault();
       const btnSubmit = document.getElementById("btnSubmit");
       btnSubmit.disabled = true;
@@ -313,20 +316,26 @@
       localStorage.setItem('my_reel_posts', JSON.stringify(localPosts));
       renderMyPosts();
 
-      if (APPS_SCRIPT_URL && APPS_SCRIPT_URL.includes("script.google.com")) {
-        try {
-          await fetch(APPS_SCRIPT_URL, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(newPost)
-          });
-          alert("✅ บันทึกข้อมูลเข้า Google Sheet และหน้าเว็บเรียบร้อยครับ!");
-        } catch (err) {
-          console.error("Error:", err);
-          alert("⚠️ บันทึกในเว็บเรียบร้อย แต่ส่งเข้า Google Sheet ไม่สำเร็จ");
+      if (APPS_SCRIPT_URL) {
+        const form = document.createElement("form");
+        form.action = APPS_SCRIPT_URL;
+        form.method = "POST";
+        form.target = "hidden_iframe";
+
+        for (const key in newPost) {
+          const input = document.createElement("input");
+          input.type = "hidden";
+          input.name = key;
+          input.value = newPost[key];
+          form.appendChild(input);
         }
+
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
       }
+
+      alert("✅ บันทึกข้อมูลเรียบร้อยแล้วครับ!");
 
       document.getElementById("title").value = "";
       document.getElementById("reelUrl").value = "";
