@@ -80,7 +80,7 @@
       </form>
     </section>
 
-    <!-- กล่องข้อความสำหรับ Copy (3 แบบ) -->
+    <!-- กล่องข้อความสำหรับ Copy (แก้ไขชื่อหัวข้อได้เอง) -->
     <section class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg space-y-4">
       <div class="flex justify-between items-center">
         <h2 class="text-lg font-bold text-indigo-300">
@@ -170,9 +170,7 @@
 
   <script>
     const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1MCyeb0qJnHoKRI7fFrE3_cs67Es3F_qXTcXMFjgNveo/edit?gid=1898788398#gid=1898788398";
-    
-    // 🌐 นำ Web App URL ที่ได้จากขั้นตอน Deploy ใน Apps Script มาวางตรงนี้ครับ
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx8r8wWVBumrWvu7zuXLOM0ZgrEPAkrFsDmz49UjzGmgX2CYWjPAmmwyFXOTqxePoBoRg/exec"; 
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx8r8wVBumrWvu7zuXLOM0zgREPAkrfSDmz49UjzGmgX2CYwJPammwyFXOTqxePoBoRg/exec";
 
     let localPosts = JSON.parse(localStorage.getItem('my_reel_posts') || '[]');
 
@@ -287,7 +285,6 @@
       });
     }
 
-    // ฟังก์ชันส่งข้อมูลเข้า Google Sheet
     document.getElementById("addPostForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const btnSubmit = document.getElementById("btnSubmit");
@@ -312,12 +309,10 @@
         shares: 0
       };
 
-      // 1. บันทึกเข้าเครื่อง
       localPosts.unshift(newPost);
       localStorage.setItem('my_reel_posts', JSON.stringify(localPosts));
       renderMyPosts();
 
-      // 2. ส่งข้อมูลไป Google Apps Script
       if (APPS_SCRIPT_URL && APPS_SCRIPT_URL.includes("script.google.com")) {
         try {
           await fetch(APPS_SCRIPT_URL, {
@@ -326,13 +321,11 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(newPost)
           });
-          alert("✅ บันทึกข้อมูลเข้า Google Sheet เรียบร้อยครับ!");
+          alert("✅ บันทึกข้อมูลเข้า Google Sheet และหน้าเว็บเรียบร้อยครับ!");
         } catch (err) {
           console.error("Error:", err);
           alert("⚠️ บันทึกในเว็บเรียบร้อย แต่ส่งเข้า Google Sheet ไม่สำเร็จ");
         }
-      } else {
-        alert("⚠️ บันทึกข้อมูลลงในเว็บเรียบร้อย! (หากต้องการให้ลง Google Sheet ด้วย อย่าลืมใส่ Web App URL ในโค้ดนะครับ)");
       }
 
       document.getElementById("title").value = "";
